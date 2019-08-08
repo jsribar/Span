@@ -4,14 +4,17 @@
 
 #include "../Span/span.h"
 
-TEST_CASE("constructor of span<int> creates span with upper and lower bounds")
+// constructor
+
+TEST_CASE("constructor of span<int> creates non-empty span with upper and lower bounds")
 {
 	span<int> span(1, 2);
 	CHECK(span.upper() == 2);
 	CHECK(span.lower() == 1);
+	CHECK(!span.is_empty());
 }
 
-TEST_CASE("constructor of span<int> creates empty span if upper and lower bounds are same")
+TEST_CASE("constructor of span<int> creates empty span if upper and lower bounds are equal")
 {
 	span<int> span(1, 1);
 	CHECK(span.is_empty());
@@ -22,10 +25,12 @@ TEST_CASE("constructor of span<int> throws exception if lower bound is larger th
 	CHECK_THROWS_AS(span<int>(5, 2), std::invalid_argument);
 }
 
-TEST_CASE("span<int>::is_inside returns false for an integer smaller than lower bound")
+// is_inside for a value
+
+TEST_CASE("span<int>::is_inside returns true for an integer inside bounds")
 {
 	span<int> span(1, 5);
-	CHECK(!span.is_inside(0));
+	CHECK(span.is_inside(2));
 }
 
 TEST_CASE("span<int>::is_inside returns true for an integer equal to lower bound")
@@ -34,16 +39,16 @@ TEST_CASE("span<int>::is_inside returns true for an integer equal to lower bound
 	CHECK(span.is_inside(1));
 }
 
-TEST_CASE("span<int>::is_inside returns true for an integer inside bounds")
-{
-	span<int> span(1, 5);
-	CHECK(span.is_inside(2));
-}
-
 TEST_CASE("span<int>::is_inside returns false for an integer equal to upper bound")
 {
 	span<int> span(1, 5);
 	CHECK(!span.is_inside(5));
+}
+
+TEST_CASE("span<int>::is_inside returns false for an integer smaller than lower bound")
+{
+	span<int> span(1, 5);
+	CHECK(!span.is_inside(0));
 }
 
 TEST_CASE("span<int>::is_inside returns false for an integer larger than upper bound")
@@ -52,7 +57,41 @@ TEST_CASE("span<int>::is_inside returns false for an integer larger than upper b
 	CHECK(!span.is_inside(6));
 }
 
-TEST_CASE("span<int>::is_inside returns true for another span with larger lower bound and smaller upper bound")
+// is_inside_inclusive for a value
+
+TEST_CASE("span<int>::is_inside_inclusive returns true for an integer inside bounds")
+{
+	span<int> span(1, 5);
+	CHECK(span.is_inside_inclusive(2));
+}
+
+TEST_CASE("span<int>::is_inside_inclusive returns true for an integer equal to lower bound")
+{
+	span<int> span(1, 5);
+	CHECK(span.is_inside_inclusive(1));
+}
+
+TEST_CASE("span<int>::is_inside_inclusive returns true for an integer equal to upper bound")
+{
+	span<int> span(1, 5);
+	CHECK(span.is_inside_inclusive(5));
+}
+
+TEST_CASE("span<int>::is_inside_inclusive returns false for an integer smaller than lower bound")
+{
+	span<int> span(1, 5);
+	CHECK(!span.is_inside_inclusive(0));
+}
+
+TEST_CASE("span<int>::is_inside_inclusive returns false for an integer larger than upper bound")
+{
+	span<int> span(1, 5);
+	CHECK(!span.is_inside_inclusive(6));
+}
+
+// is_inside for another span
+
+TEST_CASE("span<int>::is_inside returns true for another span with larger lower and smaller upper bound")
 {
 	span<int> s{ 1, 5 };
 	CHECK(s.is_inside(span<int>{ 2, 4 }));
@@ -62,6 +101,13 @@ TEST_CASE("span<int>::is_inside returns true for another span with same bounds")
 {
 	span<int> s{ 1, 5 };
 	CHECK(s.is_inside(span<int>{ 1, 5 }));
+}
+
+TEST_CASE("span<int>::is_inside returns true for another narrower span with common boundary")
+{
+	span<int> s{ 1, 5 };
+	CHECK(s.is_inside(span<int>{ 1, 4 }));
+	CHECK(s.is_inside(span<int>{ 2, 5 }));
 }
 
 TEST_CASE("span<int>::is_inside returns false for another span with smaller lower bound and larger upper bound")
@@ -76,17 +122,13 @@ TEST_CASE("span<int>::is_inside returns false for another span with smaller lowe
 	CHECK(!s.is_inside(span<int>{ 0, 4 }));
 }
 
-TEST_CASE("span<int>::is_inside returns true for another span with larger lower bound and equal upper bound")
-{
-	span<int> s{ 1, 5 };
-	CHECK(s.is_inside(span<int>{ 2, 5 }));
-}
-
 TEST_CASE("span<int>::is_inside returns false for another span with larger lower bound and larger upper bound")
 {
 	span<int> s{ 1, 5 };
 	CHECK(!s.is_inside(span<int>{ 2, 6 }));
 }
+
+// intersection
 
 TEST_CASE("span<int>::intersection returns new span corresponding to the intersection with span provided")
 {
@@ -122,12 +164,17 @@ TEST_CASE("span<int>::intersection of empty span with empty returns empty span")
 }
 
 
-struct char_comparison
+struct char_less
 {
 	bool operator()(const char* left, const char* right) const { return strcmp(left, right) < 0; }
 };
 
-using char_span = span<const char*, char_comparison>;
+struct char_equal
+{
+	bool operator()(const char* left, const char* right) const { return strcmp(left, right) == 0; }
+};
+
+using char_span = span<const char*, char_less, char_equal>;
 
 TEST_CASE("span<const char*>::is_inside returns true for a string alphabetically inside bounds")
 {
@@ -154,6 +201,12 @@ TEST_CASE("span<const char*>::is_inside returns false for a string equal to uppe
 {
 	char_span s{ "abc", "bcd" };
 	CHECK(!s.is_inside("bcd"));
+}
+
+TEST_CASE("span<const char*>::is_inside_inclusive returns true for a string equal to upper bound")
+{
+	char_span s{ "abc", "bcd" };
+	CHECK(s.is_inside_inclusive("bcd"));
 }
 
 TEST_CASE("span<const char*>::is_inside returns true for another span with bounds alphabetically inside current bounds")

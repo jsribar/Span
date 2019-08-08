@@ -40,6 +40,11 @@ public:
 		return !(less_m(other.lower_m, lower_m)) && !(less_m(upper_m, other.upper_m));
 	}
 
+	bool is_inside_inclusive(const T& value) const
+	{
+		return is_inside(value) || equal_m(value, upper_m);
+	}
+
 	span intersection(const span& other)
 	{
 		if (is_empty())
