@@ -4,16 +4,21 @@
 
 #include "../Span/span.h"
 
-TEST_CASE("constructor of span<int> creates span with upper and lower limit")
+TEST_CASE("constructor of span<int> creates span with upper and lower bounds")
 {
 	span<int> span(1, 2);
 	CHECK(span.upper() == 2);
 	CHECK(span.lower() == 1);
 }
 
-TEST_CASE("constructor of span<int> creates throws exception if lower bound is equal to or larger than upper bound")
+TEST_CASE("constructor of span<int> creates empty span if upper and lower bounds are same")
 {
-	CHECK_THROWS_AS(span<int>(2, 2), std::invalid_argument);
+	span<int> span(1, 1);
+	CHECK(span.is_empty());
+}
+
+TEST_CASE("constructor of span<int> throws exception if lower bound is larger than upper bound")
+{
 	CHECK_THROWS_AS(span<int>(5, 2), std::invalid_argument);
 }
 
@@ -81,6 +86,39 @@ TEST_CASE("span<int>::is_inside returns false for another span with larger lower
 {
 	span<int> s{ 1, 5 };
 	CHECK(!s.is_inside(span<int>{ 2, 6 }));
+}
+
+TEST_CASE("span<int>::intersection returns new span corresponding to the intersection with span provided")
+{
+	span<int> s1{ 1, 5 };
+	span<int> s2{ 2, 6 };
+	auto intersection = s1.intersection(s2);
+	CHECK(intersection.lower() == 2);
+	CHECK(intersection.upper() == 5);
+}
+
+TEST_CASE("span<int>::intersection of non-empty with empty span returns empty span")
+{
+	span<int> s{ 1, 5 };
+	CHECK(s.intersection(span<int>{ 2, 2 }).is_empty());
+	CHECK(s.intersection(span<int>{ -1, -1 }).is_empty());
+	CHECK(s.intersection(span<int>{ 6, 6 }).is_empty());
+}
+
+TEST_CASE("span<int>::intersection of empty span with non-empty returns empty span")
+{
+	span<int> s{ 2, 2 };
+	CHECK(s.intersection(span<int>{ 1, 3 }).is_empty());
+	CHECK(s.intersection(span<int>{ 2, 5 }).is_empty());
+	CHECK(s.intersection(span<int>{ 1, 5 }).is_empty());
+}
+
+TEST_CASE("span<int>::intersection of empty span with empty returns empty span")
+{
+	span<int> s{ 2, 2 };
+	CHECK(s.intersection(span<int>{ 1, 1 }).is_empty());
+	CHECK(s.intersection(span<int>{ 2, 2 }).is_empty());
+	CHECK(s.intersection(span<int>{ 5, 5 }).is_empty());
 }
 
 
